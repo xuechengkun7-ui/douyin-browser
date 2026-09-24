@@ -1,0 +1,48 @@
+name: Build Douyin Browser Debug APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '*.zip'
+      - '.github/workflows/build-douyin-apk.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Restore Flutter project from uploaded ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' archives < <(find . -maxdepth 1 -type f -name '*.zip' -print0)
+          if [ "${#archives[@]}" -ne 1 ]; then
+            echo 'Upload exactly one Douyin Browser source ZIP to the repository root.' >&2
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/source"
+          unzip -q "${archives[0]}" -d "$RUNNER_TEMP/source"
+          source_dir="$RUNNER_TEMP/source"
+          if [ ! -f "$source_dir/pubspec.yaml" ]; then
+            source_dir="$source_dir/douyin_browser"
+          fi
+          test -f "$source_dir/pubspec.yaml"
+          test -f "$source_dir/lib/main.dart"
+          test -f "$source_dir/android/app/src/main/AndroidManifest.xml"
+          flutter create --platforms=android --project-name douyin_browser --org com.example app_build
+          cp "$source_dir/pubspec.yaml" app_build/pubspec.yaml
+          cp "$source_dir/lib/main.dart" app_build/lib/main.dart
+          cp "$source_dir/android/app/src/main/AndroidManifest.xml" app_build/android/app/src/main/AndroidManifest.xml
+          cd app_build
+          flutter pub get
+          flutter build apk --debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: douyin-browser-debug-apk
+          path: app_build/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
