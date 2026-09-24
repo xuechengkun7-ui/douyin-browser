@@ -40,6 +40,7 @@ jobs:
           cp "$source_dir/android/app/src/main/AndroidManifest.xml" app_build/android/app/src/main/AndroidManifest.xml
           cd app_build
           flutter pub get
+          find "$HOME/.pub-cache/hosted/pub.dev" -path '*/flutter_inappwebview_android-*/android/build.gradle' -exec sed -i 's/proguard-android\.txt/proguard-android-optimize.txt/g' {} +
           flutter build apk --debug
       - uses: actions/upload-artifact@v4
         with:
