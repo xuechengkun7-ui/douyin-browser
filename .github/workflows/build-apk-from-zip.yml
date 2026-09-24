@@ -1,0 +1,43 @@
+name: Build Douyin Browser APK from ZIP
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'douyin_browser_leads_home_search.zip'
+      - '.github/workflows/build-apk-from-zip.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Extract uploaded source ZIP
+        run: |
+          test -f douyin_browser_leads_home_search.zip
+          unzip -q douyin_browser_leads_home_search.zip -d source
+          test -f source/pubspec.yaml
+          test -f source/lib/main.dart
+          test -f source/android/app/src/main/AndroidManifest.xml
+      - name: Generate Android project
+        run: |
+          flutter create --platforms=android --project-name douyin_browser app
+          cp source/pubspec.yaml app/pubspec.yaml
+          cp -r source/lib/. app/lib/
+          cp source/android/app/src/main/AndroidManifest.xml app/android/app/src/main/AndroidManifest.xml
+          for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            cp "source/assets/icon/mipmap-${density}/ic_launcher.png" "app/android/app/src/main/res/mipmap-${density}/ic_launcher.png"
+          done
+          cd app
+          flutter pub get
+      - name: Build release APK
+        working-directory: app
+        run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: douyin-browser-apk
+          path: app/build/app/outputs/flutter-apk/app-release.apk
