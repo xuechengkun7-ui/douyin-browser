@@ -37,6 +37,7 @@ jobs:
           flutter create --platforms=android --project-name douyin_browser --org com.example app_build
           cp "$source_dir/pubspec.yaml" app_build/pubspec.yaml
           cp "$source_dir/lib/main.dart" app_build/lib/main.dart
+          sed -i 's/!request\.isForMainFrame/request.isForMainFrame != true/' app_build/lib/main.dart
           cp "$source_dir/android/app/src/main/AndroidManifest.xml" app_build/android/app/src/main/AndroidManifest.xml
           cd app_build
           flutter pub get
